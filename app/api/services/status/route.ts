@@ -1,68 +1,68 @@
-import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "../../auth/[...nextauth]/route";
+import { NextResponse } from 'next/server';
 
-const SERVICES = {
-  langfuse: process.env.LANGFUSE_URL || "http://localhost:3000",
-  anythingllm: process.env.ANYTHINGLLM_URL || "http://localhost:3001",
-  ollama: process.env.OLLAMA_URL || "http://localhost:11434",
-  qdrant: process.env.QDRANT_URL || "http://localhost:6333",
-  chroma: process.env.CHROMA_URL || "http://localhost:8000",
-  searxng: process.env.SEARXNG_URL || "http://localhost:8080",
-};
-
-async function checkService(name: string, url: string) {
-  try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 5000);
-
-    let checkUrl = url;
-    if (name === "langfuse") checkUrl = `${url}/api/public/health`;
-    if (name === "anythingllm") checkUrl = `${url}/api/ping`;
-    if (name === "ollama") checkUrl = `${url}/api/tags`;
-    if (name === "qdrant") checkUrl = `${url}/healthz`;
-    if (name === "chroma") checkUrl = `${url}/api/v2/heartbeat`;
-
-    const response = await fetch(checkUrl, {
-      signal: controller.signal,
-      method: "GET",
-    });
-
-    clearTimeout(timeoutId);
-
-    return {
-      name,
-      status: response.ok ? "online" : "error",
-      url,
-      responseTime: response.headers.get("X-Response-Time") || "N/A",
-    };
-  } catch (error) {
-    return {
-      name,
-      status: "offline",
-      url,
-      error: error instanceof Error ? error.message : "Unknown error",
-    };
-  }
-}
+const SERVICES = [
+  { name: 'Languase', url: 'http://localhost:3000', timeout: 2000 },
+  { name: 'Anythinglin', url: 'http://anythinglin.local', timeout: 2000 },
+  { name: 'Oliama', url: 'http://oliama.local', timeout: 2000 },
+  { name: 'Odrant', url: 'http://qdrant.local:6333', timeout: 2000 },
+  { name: 'Chroma', url: 'http://chroma.local:8000', timeout: 2000 },
+  { name: 'Searxng', url: 'http://searxng.local', timeout: 2000 },
+  { name: 'n8n', url: 'http://172.20.192.47:30678', timeout: 2000 },
+  { name: 'Clawdbot Gateway', url: 'http://localhost:18789', timeout: 2000 },
+];
 
 export async function GET() {
-  const session = await getServerSession(authOptions);
+  const results = await Promise.allSettled(
+    SERVICES.map(async (service) => {
+      const startTime = performance.now();
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), service.timeout);
 
-  if (!session) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+      try {
+        const response = await fetch(service.url, {
+          signal: controller.signal,
+          method: 'GET',
+        });
+        
+        clearTimeout(timeout);
+        const latency = Math.round(performance.now() - startTime);
 
-  const checks = await Promise.all(
-    Object.entries(SERVICES).map(([name, url]) => checkService(name, url))
+        return {
+          name: service.name,
+          url: service.url,
+          status: response.ok || response.status < 500 ? 'online' : 'offline',
+          latency,
+          timestamp: new Date().toISOString(),
+        };
+      } catch (error) {
+        clearTimeout(timeout);
+        return {
+          name: service.name,
+          url: service.url,
+          status: 'offline',
+          latency: null,
+          error: error instanceof Error ? error.message : 'Unknown error',
+          timestamp: new Date().toISOString(),
+        };
+      }
+    })
   );
 
-  const summary = {
-    total: checks.length,
-    online: checks.filter((c) => c.status === "online").length,
-    offline: checks.filter((c) => c.status === "offline").length,
-    services: checks,
-  };
+  const services = results.map((r) => 
+    r.status === 'fulfilled' ? r.value : {
+      name: 'Unknown',
+      status: 'offline',
+      timestamp: new Date().toISOString(),
+    }
+  );
 
-  return NextResponse.json(summary);
+  const onlineCount = services.filter((s) => s.status === 'online').length;
+
+  return NextResponse.json({
+    status: onlineCount === services.length ? 'all-healthy' : 'degraded',
+    onlineCount,
+    totalCount: services.length,
+    services,
+    timestamp: new Date().toISOString(),
+  });
 }
