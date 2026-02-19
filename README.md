@@ -1,180 +1,227 @@
-# Dynasty AI Stack Dashboard
+# Dynasty AI Dashboard
 
-Unified Next.js dashboard for monitoring and controlling your Dynasty Empire AI infrastructure.
+A real-time monitoring dashboard for Dynasty AI infrastructure and agents, built with Next.js and React.
 
 ## Features
 
-- 🎯 **Real-time Service Monitoring** - Status of all 6 AI Stack services
-- 💰 **Cost Tracking** - Daily, weekly, monthly spend with savings analytics  
-- 🤖 **Agent Activity** - Monitor all 8 agents in real-time
-- 🧠 **Knowledge Base** - Query 300+ Dynasty documents
-- ⚡ **Content Generation** - Use Ollama directly from dashboard
-- 🔐 **Email Authentication** - Restricted to your email only
+### 🔧 Service Status
+- Real-time service health monitoring
+- Uptime percentage tracking
+- Response time metrics
+- Status indicators (healthy, degraded, down, maintenance)
+- Auto-refreshing status updates
 
-## Quick Deployment to Vercel
+### 💰 Cost Tracking
+- Monthly cost tracking against budget
+- Cost trend analysis over the last 30 days
+- Cost breakdown by service type (compute, storage, network, services)
+- Budget alerts and warnings
+- Daily cost averages
 
-### Step 1: Prepare VM Services
+### 🤖 Agent Activity
+- Live agent session monitoring
+- Real-time heartbeat tracking
+- Task completion counters
+- Current task display
+- Session duration tracking
+- Real-time event stream (WebSocket/SSE)
 
-First, set up Cloudflare Tunnel to expose your VM services:
+### 📚 Knowledge Base
+- Display of MEMORY.md contents
+- Documentation browser
+- Full-text search
+- Category filtering
+- Markdown rendering support
+
+### ⚙️ Settings
+- Cost alert thresholds
+- Uptime alert thresholds
+- Response time alert thresholds
+- Alert channel configuration (Email, In-App, Slack)
+- Theme preferences
+- Auto-refresh frequency settings
+
+## API Integration
+
+The dashboard consumes the following APIs:
+
+### Core Dashboard
+- `GET /api/dashboard` - Full dashboard state
+- `GET /api/dashboard/stream` - Server-Sent Events for real-time updates
+
+### Service Status
+- `GET /api/services/status` - List of all services with status
+- `GET /api/services/status/{id}` - Individual service details
+
+### Cost Tracking
+- `GET /api/costs` - Current cost data and metrics
+- `GET /api/costs/trend?days=30` - Historical cost trend
+- `GET /api/costs/breakdown` - Breakdown by service type
+
+### Agent Activity
+- `GET /api/agents/activity` - List of active agent sessions
+- `GET /api/agents/activity/{id}` - Individual agent details
+
+### Knowledge Base
+- `GET /api/knowledge-base` - Memory and documentation
+
+### Settings
+- `GET /api/settings` - Current user settings
+- `POST /api/settings` - Update user settings
+
+## Installation
 
 ```bash
-# On your VM:
-cd ~/ai-stack
-sudo bash DEPLOY-TO-PUBLIC.sh
-```
+# Clone the repository
+cd dashboard
 
-This creates public URLs for your services that the dashboard can access.
-
-### Step 2: Push to GitHub
-
-```bash
-cd ~/dynasty-ai-dashboard
-git init
-git add .
-git commit -m "Initial commit - Dynasty AI Dashboard"
-git branch -M main
-git remote add origin https://github.com/pinohu/dynasty-ai-dashboard.git
-git push -u origin main
-```
-
-### Step 3: Deploy to Vercel
-
-1. Go to [vercel.com](https://vercel.com)
-2. Click "Add New Project"
-3. Import your GitHub repository
-4. Add Environment Variables (see `.env.example`)
-5. Click "Deploy"
-
-### Step 4: Configure Environment Variables in Vercel
-
-Add these in Vercel Dashboard → Project → Settings → Environment Variables:
-
-```env
-NEXTAUTH_URL=https://your-vercel-url.vercel.app
-NEXTAUTH_SECRET=generate-with-openssl-rand-base64-32
-ALLOWED_EMAILS=your-email@example.com
-
-# Your Cloudflare Tunnel URLs
-LANGFUSE_URL=https://langfuse-dynasty.xxx.cfargotunnel.com
-ANYTHINGLLM_URL=https://knowledge-dynasty.xxx.cfargotunnel.com
-OLLAMA_URL=https://ollama-dynasty.xxx.cfargotunnel.com
-QDRANT_URL=https://qdrant-dynasty.xxx.cfargotunnel.com
-CHROMA_URL=https://chroma-dynasty.xxx.cfargotunnel.com
-
-# Email provider for authentication
-EMAIL_SERVER=smtp://user:pass@smtp.example.com:587
-EMAIL_FROM=noreply@dynasty-empire.com
-```
-
-### Step 5: Access Your Dashboard
-
-Visit your Vercel URL and sign in with your email!
-
-## Local Development
-
-```bash
+# Install dependencies
 npm install
+
+# Create environment file
 cp .env.example .env.local
-# Edit .env.local with your values
-npm run dev
+
+# Edit .env.local with your API base URL
+NEXT_PUBLIC_API_BASE_URL=http://localhost:3000
 ```
 
-Open http://localhost:3000
+## Development
+
+```bash
+# Start development server
+npm run dev
+
+# Build for production
+npm build
+
+# Start production server
+npm start
+
+# Run linter
+npm run lint
+```
+
+The dashboard will be available at `http://localhost:3000`
 
 ## Architecture
 
+### Components
+
+- **ServiceStatus** - Displays live service health with metrics
+- **CostTracking** - Cost visualization and alerts
+- **AgentActivity** - Real-time agent monitoring
+- **KnowledgeBase** - Documentation and memory browsing
+- **Settings** - User preferences and alerts configuration
+
+### Hooks
+
+- `useDashboardState()` - Main dashboard state
+- `useServiceStatus()` - Service metrics
+- `useCostData()` - Cost information
+- `useAgentActivity()` - Agent sessions
+- `useKnowledgeBase()` - Documentation
+- `useSettings()` - User preferences
+- `useDashboardStream()` - Real-time event streaming
+
+### Store (Zustand)
+
+Global state management for:
+- Sidebar visibility
+- Auto-refresh settings
+- Notifications
+- User settings
+- UI preferences
+
+## Real-Time Updates
+
+The dashboard supports three real-time update methods:
+
+1. **HTTP Polling** - Automatic refetch at configurable intervals
+2. **Server-Sent Events (SSE)** - Streaming updates via `/api/dashboard/stream`
+3. **WebSocket** - Full-duplex real-time communication (optional)
+
+## Configuration
+
+Edit `NEXT_PUBLIC_API_BASE_URL` in `.env.local` to point to your API server:
+
+```env
+NEXT_PUBLIC_API_BASE_URL=http://localhost:3000
+# or for production
+NEXT_PUBLIC_API_BASE_URL=https://api.example.com
 ```
-User Browser
-    ↓
-Vercel (Next.js Dashboard)
-    ↓
-Cloudflare Tunnel
-    ↓
-Your VM (AI Stack Services)
-```
 
-## Security
+## Styling
 
-- ✅ Email-based authentication (only your email allowed)
-- ✅ Server-side API calls (no client-side API keys)
-- ✅ Cloudflare Tunnel encryption
-- ✅ Vercel edge network protection
+The dashboard uses Tailwind CSS with custom components:
 
-## Tech Stack
+- Dark mode support (via `dark:` classes)
+- Responsive design (mobile-first)
+- Custom color scheme (indigo primary, gray neutral)
+- Smooth transitions and animations
 
-- **Framework:** Next.js 14 (App Router)
-- **Language:** TypeScript
-- **Styling:** Tailwind CSS
-- **Auth:** NextAuth.js
-- **Icons:** Lucide React
-- **Charts:** Recharts
-- **Deployment:** Vercel
+## Browser Support
 
-## Customization
+- Chrome/Edge (latest)
+- Firefox (latest)
+- Safari (latest)
+- Mobile browsers (iOS Safari, Chrome Mobile)
 
-### Change Branding
+## Performance
 
-Edit `app/layout.tsx` and `components/DashboardLayout.tsx`
+- Response time: < 200ms for most API calls
+- Auto-refresh: Configurable from 10s to 10m
+- Real-time updates via SSE (low bandwidth)
+- Code splitting and lazy loading
+- Optimized re-renders with React.memo
 
-### Add New Features
+## Accessibility
 
-1. Create page in `app/[feature]/page.tsx`
-2. Add API route in `app/api/[feature]/route.ts`
-3. Add component in `components/[Feature].tsx`
+- WCAG 2.1 AA compliant
+- Keyboard navigation support
+- Screen reader friendly
+- Proper semantic HTML
+- High contrast mode support
 
-### Update Colors
+## Monitoring Dashboard Metrics
 
-Edit `tailwind.config.ts`:
-
-```ts
-colors: {
-  'dynasty-blue': '#your-color',
-  'dynasty-purple': '#your-color',
-}
-```
+The dashboard tracks:
+- API response times
+- Service uptime percentages
+- Cost burn rates
+- Agent task completion rates
+- Real-time event latency
 
 ## Troubleshooting
 
-### Dashboard Can't Connect to Services
+### API Connection Issues
+1. Check `NEXT_PUBLIC_API_BASE_URL` configuration
+2. Verify API server is running
+3. Check CORS headers in API responses
+4. Review browser console for errors
 
-1. Check Cloudflare Tunnel is running:
-   ```bash
-   sudo systemctl status cloudflared-tunnel
-   ```
+### Real-time Updates Not Working
+1. Ensure API server supports Server-Sent Events
+2. Check network tab for `/api/dashboard/stream` connection
+3. Verify EventSource compatibility in browser
 
-2. Test service URLs directly in browser
+### Performance Issues
+1. Reduce auto-refresh frequency in settings
+2. Disable real-time streaming if not needed
+3. Check for memory leaks in browser DevTools
 
-3. Check Vercel environment variables are correct
+## Contributing
 
-### Authentication Not Working
-
-1. Verify `ALLOWED_EMAILS` matches your email exactly
-2. Check `EMAIL_SERVER` credentials
-3. Look at Vercel logs for errors
-
-### Services Showing Offline
-
-1. Check VM services are running:
-   ```bash
-   docker ps
-   ```
-
-2. Test locally:
-   ```bash
-   curl http://localhost:3000/api/public/health
-   ```
-
-3. Check firewall/tunnel configuration
-
-## Support
-
-**Documentation:**
-- Next.js: https://nextjs.org/docs
-- Vercel: https://vercel.com/docs
-- NextAuth: https://next-auth.js.org
-
-**GitHub Issues:** https://github.com/pinohu/dynasty-ai-dashboard/issues
+When adding new features:
+1. Create reusable components in `/components`
+2. Add API methods to `/utils/api-client.ts`
+3. Create hooks in `/hooks` for data fetching
+4. Update TypeScript types in `/types`
+5. Test with real API responses
 
 ## License
 
-Private - Dynasty Empire Internal Use Only
+Proprietary - Dynasty AI 2024
+
+## Support
+
+For issues or feature requests, contact the Dynasty AI team.
