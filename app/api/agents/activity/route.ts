@@ -55,7 +55,7 @@ export async function GET() {
         };
       });
 
-    const activeCount = agentSessions.filter((a) => a.status === 'active').length;
+    const activeCount = agentSessions.filter((a: any) => a.status === 'active').length;
 
     return NextResponse.json({
       totalAgents: allSessions.length,
