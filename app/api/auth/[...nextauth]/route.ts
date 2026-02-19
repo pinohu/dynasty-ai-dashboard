@@ -1,7 +1,7 @@
 import NextAuth, { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 
-const ALLOWED_EMAILS = process.env.ALLOWED_EMAILS?.split(",") || ["your-email@example.com"];
+const ALLOWED_EMAILS = ["pinohuohu@gmail.com", "polycarpohu@gmail.com"];
 
 export const authOptions: NextAuthOptions = {
   providers: [
