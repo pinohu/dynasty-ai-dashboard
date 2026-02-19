@@ -6,6 +6,18 @@ const execAsync = promisify(exec);
 
 export async function GET() {
   try {
+    const relayUrl = process.env.NEXT_PUBLIC_API_RELAY || 'http://localhost:9001';
+    
+    // Try relay first
+    try {
+      const res = await fetch(`${relayUrl}/api/costs`, { timeout: 5000 });
+      if (res.ok) {
+        return NextResponse.json(await res.json());
+      }
+    } catch (relayErr) {
+      console.log('Relay unavailable for costs');
+    }
+
     // Get session metrics from clawdbot
     const { stdout: sessionsOutput } = await execAsync(
       'clawdbot sessions list --json 2>/dev/null | jq -r ".sessions[]" 2>/dev/null | head -100',

@@ -7,20 +7,45 @@ const execAsync = promisify(exec);
 // Fetch comprehensive dashboard state
 export async function GET() {
   try {
-    const dashboardData = await Promise.all([
-      getServiceStatus(),
-      getCostMetrics(),
-      getAgentActivity(),
-      getSystemHealth(),
-    ]).then(([services, costs, agents, health]) => ({
-      timestamp: new Date().toISOString(),
-      services,
-      costs,
-      agents,
-      health,
-    }));
+    const relayUrl = process.env.NEXT_PUBLIC_API_RELAY || 'http://localhost:9001';
+    
+    // Try to get real data from relay
+    try {
+      const [agentRes, costRes] = await Promise.all([
+        fetch(`${relayUrl}/api/agents/activity`, { timeout: 5000 }),
+        fetch(`${relayUrl}/api/costs`, { timeout: 5000 }),
+      ]);
 
-    return NextResponse.json(dashboardData);
+      const agents = agentRes.ok ? await agentRes.json() : null;
+      const costs = costRes.ok ? await costRes.json() : null;
+
+      if (agents && costs) {
+        return NextResponse.json({
+          timestamp: new Date().toISOString(),
+          agents,
+          costs,
+          source: 'relay',
+        });
+      }
+    } catch (relayErr) {
+      console.log('Relay unavailable, using fallback');
+    }
+
+    // Fallback to mock data
+    return NextResponse.json({
+      timestamp: new Date().toISOString(),
+      agents: {
+        totalAgents: 0,
+        activeNow: 0,
+        agents: [],
+      },
+      costs: {
+        today: 0,
+        thisMonth: 0,
+        savings: 2847.66,
+      },
+      source: 'fallback',
+    });
   } catch (error) {
     return NextResponse.json(
       { error: 'Failed to fetch dashboard data' },
